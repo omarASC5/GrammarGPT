@@ -20,19 +20,23 @@ from peft import (
     prepare_model_for_int8_training,
     set_peft_model_state_dict,
 )
-from transformers import AutoModelForCausalLM,AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from utils.prompter import Prompter
 
+# Change the download location of the model to avoid download size limitations
+os.environ['TRANSFORMERS_CACHE'] = '/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache/transformers'
+# os.environ['HF_DATASETS_CACHE'] = '/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache/datasets'
+os.environ['HF_HOME'] = '/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache'
 
 def train(
-    use_lora: bool = False,
+    use_lora: bool = True,
     # model/data params
     base_model: str = "FreedomIntelligence/phoenix-inst-chat-7b",  # the only required argument
     data_path: str = "./pseudo_data/instruction.json",
     dev_data_path: str = "./pseudo_data/nacgec_dev_instruct_zh.json",
     output_dir: str = "./saved model",
-    val_set_size: int =500,
+    val_set_size: int = 500,
     # training hyperparams
     batch_size: int = 64,
     micro_batch_size: int = 8,
@@ -123,6 +127,7 @@ def train(
             load_in_8bit=True,
             torch_dtype=torch.float16,
             device_map=device_map,
+            cache_dir="/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache/transformers",
         )
     else:
         model = AutoModelForCausalLM.from_pretrained(
@@ -130,8 +135,12 @@ def train(
             load_in_8bit=False,
             torch_dtype=torch.float32,
             device_map=device_map,
+            cache_dir="/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache/transformers",
         )
-    tokenizer = AutoTokenizer.from_pretrained(base_model)
+    tokenizer = AutoTokenizer.from_pretrained(
+        base_model,
+        cache_dir="/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache/transformers"
+    )
 
     tokenizer.pad_token_id = (
         0  # unk. we want this to be different from the eos token
@@ -200,12 +209,12 @@ def train(
         model = get_peft_model(model, config)
 
     if data_path.endswith(".json") or data_path.endswith(".jsonl"):
-        data = load_dataset("json", data_files=data_path)
+        data = load_dataset("json", data_files=data_path, cache_dir="/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache/datasets")
     else:
         data = load_dataset(data_path)
     
     if dev_data_path.endswith(".json") or dev_data_path.endswith(".jsonl"):
-        dev_data = load_dataset("json", data_files=dev_data_path)
+        dev_data = load_dataset("json", data_files=dev_data_path, cache_dir="/gpfs/u/home/NLUG/NLUGcbsm/scratch/cache/datasets")
     else:
         dev_data = load_dataset(dev_data_path)
 

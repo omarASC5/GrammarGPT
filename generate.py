@@ -24,7 +24,7 @@ except:  # noqa: E722
 
 
 def main(
-    use_lora= False,
+    use_lora= True,
     test_file='nacgec.test.input',
     des_file ='../submission.txt',
     load_8bit: bool = False,
